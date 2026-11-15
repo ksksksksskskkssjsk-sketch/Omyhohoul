@@ -1,1 +1,38 @@
 
+name: build
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip the mod
+        run: unzip -q sniper-mod.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.2.1
+      - name: Build mod
+        working-directory: sniper-mod
+        run: gradle build --no-daemon
+      - name: Keep only the real jar
+        run: rm -f sniper-mod/build/libs/*-sources.jar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sniper-mod
+          path: sniper-mod/build/libs/*.jar
+      - name: Publish jar to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Sniper mod (latest build)
+          files: sniper-mod/build/libs/*.jar
