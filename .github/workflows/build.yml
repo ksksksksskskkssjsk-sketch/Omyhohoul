@@ -1,4 +1,3 @@
-
 name: build
 on:
   push:
@@ -13,7 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unzip the mod
-        run: unzip -q sniper-mod.zip
+        run: |
+          ls -la
+          for z in *.zip; do [ -e "$z" ] && unzip -q -o "$z"; done
+          find . -name build.gradle -not -path "./.git/*"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -22,17 +24,20 @@ jobs:
         with:
           gradle-version: 9.2.1
       - name: Build mod
-        working-directory: sniper-mod
-        run: gradle build --no-daemon
-      - name: Keep only the real jar
-        run: rm -f sniper-mod/build/libs/*-sources.jar
+        run: |
+          DIR=$(dirname "$(find . -name build.gradle -not -path './.git/*' | head -1)")
+          cd "$DIR"
+          gradle build --no-daemon
+          rm -f build/libs/*-sources.jar
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp build/libs/*.jar "$GITHUB_WORKSPACE/out/"
       - uses: actions/upload-artifact@v4
         with:
           name: sniper-mod
-          path: sniper-mod/build/libs/*.jar
+          path: out/*.jar
       - name: Publish jar to Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Sniper mod (latest build)
-          files: sniper-mod/build/libs/*.jar
+          files: out/*.jar
